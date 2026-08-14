@@ -1,0 +1,4 @@
+interface:
+  display_name: "Plant Tracker"
+  short_description: "Builds and updates a photo-based plant tracker"
+  default_prompt: "Use $plant-tracker to create or update my plant inventory from photos and care notes."

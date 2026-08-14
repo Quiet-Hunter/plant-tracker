@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plant Tracker</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --background: #f2f6f0;
+      --surface: #ffffff;
+      --surface-muted: #f7faf6;
+      --border: #d9e4d6;
+      --text: #203124;
+      --muted: #66746a;
+      --accent: #39754a;
+      --accent-soft: #e7f2e8;
+      --high: #9c3f32;
+      --medium: #8a5c10;
+      --low: #39754a;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--background);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+
+    main {
+      width: min(1600px, calc(100% - 32px));
+      margin: 32px auto;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 5vw, 44px);
+      letter-spacing: -0.04em;
+    }
+
+    .subtitle {
+      margin: 6px 0 24px;
+      color: var(--muted);
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    button,
+    input {
+      min-height: 42px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font: inherit;
+    }
+
+    button {
+      padding: 8px 14px;
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    button[aria-selected="true"] {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+
+    input[type="search"] {
+      flex: 1 1 280px;
+      padding: 8px 12px;
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    .count {
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: calc(100vh - 210px);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--surface);
+      box-shadow: 0 10px 30px rgb(28 54 33 / 7%);
+    }
+
+    table {
+      width: 100%;
+      min-width: 1180px;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 12px;
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th:last-child,
+    td:last-child {
+      border-right: 0;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #eaf2e8;
+      color: #294730;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* Striping follows visible rows, applied in JS. Using :nth-child here would
+       count filtered-out rows and produce arbitrary runs of one colour. */
+    tbody tr.alt td {
+      background: var(--surface-muted);
+    }
+
+    @media (hover: hover) {
+      tbody tr:hover td {
+        background: #edf6eb;
+      }
+    }
+
+    :where(a, button, input, [tabindex]):focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+
+    .tab[aria-selected="true"]:focus-visible {
+      outline-color: #294730;
+    }
+
+    .photo-cell {
+      width: 132px;
+      min-width: 132px;
+      padding: 8px;
+    }
+
+    .photo-cell.multiple {
+      width: 256px;
+      min-width: 256px;
+    }
+
+    .photo-gallery {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .photo-frame {
+      display: grid;
+      flex: 0 0 auto;
+      width: 116px;
+      height: 92px;
+      overflow: hidden;
+      border: 1px dashed #b8c8b6;
+      border-radius: 10px;
+      background: #edf3eb;
+      place-items: center;
+    }
+
+    .photo-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .photo-frame a {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: zoom-in;
+    }
+
+    /* The frame clips its overflow, so an outset ring would be invisible. */
+    .photo-frame a:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -3px;
+    }
+
+    .photo-placeholder {
+      padding: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      text-align: center;
+      overflow-wrap: anywhere;
+    }
+
+    .photo-placeholder::before {
+      display: block;
+      margin-bottom: 3px;
+      content: "🌿";
+      font-size: 22px;
+    }
+
+    code {
+      font-size: 10px;
+    }
+
+    .plant-name {
+      min-width: 150px;
+      font-weight: 700;
+    }
+
+    .last-inspection {
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    #reference th:nth-child(7),
+    #reference td:nth-child(7) {
+      min-width: 270px;
+    }
+
+    .soil-mix {
+      display: block;
+      margin-top: 6px;
+      color: #386542;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    .soil-note {
+      margin: 0 0 10px;
+      border: 1px solid #c9d8c6;
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: #f3f8f1;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .priority {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 3px 9px;
+      background: var(--accent-soft);
+      color: var(--low);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .priority.medium {
+      background: #fff3d7;
+      color: var(--medium);
+    }
+
+    .priority.high {
+      background: #fae5e1;
+      color: var(--high);
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    .empty-state {
+      padding: 24px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    @media (max-width: 700px) {
+      main {
+        width: min(100% - 20px, 1600px);
+        margin: 20px auto;
+      }
+
+      .count {
+        width: 100%;
+        margin-left: 0;
+      }
+
+      /* Let the page scroll rather than nesting a fixed-height scroller inside
+         it, which trapped the table in a box shorter than one of its rows. */
+      .table-wrap {
+        max-height: none;
+        overflow-x: auto;
+        overflow-y: visible;
+      }
+
+      /* Keep the plant name in view while reading the wide columns; without this
+         you scroll right and can no longer tell which plant you are looking at. */
+      .plant-name {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        background: var(--surface);
+        box-shadow: 1px 0 0 var(--border);
+      }
+
+      tr.alt .plant-name {
+        background: var(--surface-muted);
+      }
+
+      .photo-cell,
+      .photo-cell.multiple {
+        width: 124px;
+        min-width: 124px;
+      }
+    }
+
+    @media print {
+      /* Printed as a walk-the-house checklist: both sections, no chrome, and
+         rows that do not break across pages. */
+      .toolbar,
+      .subtitle {
+        display: none;
+      }
+
+      main {
+        width: auto;
+        margin: 0;
+      }
+
+      .table-wrap {
+        max-height: none;
+        overflow: visible;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
+      table {
+        min-width: 0;
+        font-size: 10pt;
+      }
+
+      thead {
+        display: table-header-group;
+      }
+
+      tr {
+        break-inside: avoid;
+      }
+
+      /* Print every section, not just the selected tab. */
+      section[role="tabpanel"][hidden] {
+        display: block !important;
+      }
+
+      .empty-state[hidden] {
+        display: none !important;
+      }
+
+      thead th {
+        position: static;
+        background: #eaf2e8 !important;
+        color: #294730 !important;
+      }
+
+      .photo-cell,
+      .photo-frame {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>My Plants</h1>
+    <p class="subtitle">A photo-based plant health and care tracker</p>
+
+    <div class="toolbar">
+      <div class="tabs" role="tablist" aria-label="Tracker sections">
+        <button id="tab-my-plants" type="button" role="tab" aria-selected="true" aria-controls="my-plants">My Plants</button>
+        <button id="tab-reference" type="button" role="tab" aria-selected="false" aria-controls="reference">Plant Reference</button>
+      </div>
+      <input id="search" type="search" placeholder="Search this table…" aria-label="Search this table">
+      <span id="count" class="count" aria-live="polite"></span>
+    </div>
+
+    <section id="my-plants" role="tabpanel" aria-labelledby="tab-my-plants">
+      <div class="table-wrap" role="region" tabindex="0" aria-label="My plants table">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Photo</th>
+              <th scope="col">My plant</th>
+              <th scope="col">Species</th>
+              <th scope="col">Condition</th>
+              <th scope="col">What to do</th>
+              <th scope="col">Priority</th>
+              <th scope="col">Last inspection</th>
+            </tr>
+          </thead>
+          <tbody lang="ru">
+            </tbody>
+        </table>
+        <p class="empty-state" hidden
+           data-no-matches="Nothing matches your search."
+           data-no-entries="No plants yet. Ask your agent to import photos, for example: &quot;Use the plant-tracker skill to build my initial inventory from these photos.&quot;">Nothing matches your search.</p>
+      </div>
+    </section>
+
+    <section id="reference" role="tabpanel" aria-labelledby="tab-reference" hidden>
+      <p class="soil-note"><strong>How to read soil recipes:</strong> ratios are by volume. Use washed fine (3–6 mm) or crushed expanded clay mixed into the substrate. A thick layer of expanded clay does not replace a drainage hole. For hydrangeas, the universal soil should have a pH of about 5–6.5.</p>
+      <div class="table-wrap" role="region" tabindex="0" aria-label="Plant reference table">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Photo</th>
+              <th scope="col">Plant</th>
+              <th scope="col">Watering</th>
+              <th scope="col">Light</th>
+              <th scope="col">Temperature</th>
+              <th scope="col">Humidity</th>
+              <th scope="col">Soil</th>
+              <th scope="col">Feeding</th>
+              <th scope="col">Summer outdoors</th>
+              <th scope="col">Notes</th>
+            </tr>
+          </thead>
+          <tbody lang="ru">
+            </tbody>
+        </table>
+        <p class="empty-state" hidden
+           data-no-matches="Nothing matches your search."
+           data-no-entries="No species in the care reference yet.">Nothing matches your search.</p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const tabs = [...document.querySelectorAll('[role="tab"]')];
+    const panels = [...document.querySelectorAll('[role="tabpanel"]')];
+    const search = document.querySelector('#search');
+    const count = document.querySelector('#count');
+    const nameCollator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
+    const soilMixes = new Map([
+    ]);
+
+    function rowName(row) {
+      return row.querySelector('.plant-name')?.textContent.trim() ?? '';
+    }
+
+    function priorityRank(row) {
+      const priority = row.querySelector('.priority');
+      if (priority?.classList.contains('high')) return 0;
+      if (priority?.classList.contains('medium')) return 1;
+      return 2;
+    }
+
+    function addSoilMixes() {
+      for (const row of document.querySelectorAll('#reference tbody tr')) {
+        const mix = soilMixes.get(rowName(row));
+        if (!mix) continue;
+
+        const detail = document.createElement('span');
+        detail.className = 'soil-mix';
+        detail.textContent = `Example mix: ${mix}`;
+        row.cells[6].append(detail);
+      }
+    }
+
+    function sortTables() {
+      const plantBody = document.querySelector('#my-plants tbody');
+      const plantRows = [...plantBody.querySelectorAll('tr')];
+
+      plantRows
+        .sort((left, right) => {
+          const priorityDifference = priorityRank(left) - priorityRank(right);
+          return priorityDifference || nameCollator.compare(rowName(left), rowName(right));
+        })
+        .forEach((row) => plantBody.append(row));
+
+      const referenceBody = document.querySelector('#reference tbody');
+      [...referenceBody.querySelectorAll('tr')]
+        .sort((left, right) => nameCollator.compare(rowName(left), rowName(right)))
+        .forEach((row) => referenceBody.append(row));
+    }
+
+    function activePanel() {
+      return panels.find((panel) => !panel.hidden);
+    }
+
+    // Fold case and accents so "протерты" finds "протёрты" and "e" finds "é".
+    function searchable(text) {
+      return text
+        .toLocaleLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+    }
+
+    // Only the columns a reader can actually see. Using row.textContent would also
+    // match the hidden filename fallbacks, so searching "jpg" returned every row.
+    function rowSearchText(row) {
+      if (!row.dataset.searchText) {
+        const cells = [...row.children].filter((cell) => !cell.classList.contains('photo-cell'));
+        row.dataset.searchText = searchable(cells.map((cell) => cell.textContent).join(' '));
+      }
+      return row.dataset.searchText;
+    }
+
+    function filterRows() {
+      const panel = activePanel();
+      const terms = searchable(search.value.trim()).split(/\s+/).filter(Boolean);
+      const rows = [...panel.querySelectorAll('tbody tr')];
+      let visible = 0;
+
+      for (const row of rows) {
+        const haystack = rowSearchText(row);
+        const matches = terms.every((term) => haystack.includes(term));
+        row.hidden = !matches;
+        row.classList.toggle('alt', matches && visible % 2 === 1);
+        if (matches) visible += 1;
+      }
+
+      const emptyState = panel.querySelector('.empty-state');
+      emptyState.hidden = visible !== 0;
+      emptyState.textContent = rows.length === 0
+        ? emptyState.dataset.noEntries
+        : emptyState.dataset.noMatches;
+
+      count.textContent = terms.length
+        ? `Found: ${visible} of ${rows.length}`
+        : `Entries: ${rows.length}`;
+    }
+
+    function selectTab(tab, { focus = false } = {}) {
+      for (const item of tabs) {
+        const selected = item === tab;
+        item.setAttribute('aria-selected', String(selected));
+        // Roving tabindex: only the selected tab is a tab stop, so Tab moves out
+        // of the tablist and the arrow keys move within it.
+        item.tabIndex = selected ? 0 : -1;
+        document.querySelector(`#${item.getAttribute('aria-controls')}`).hidden = !selected;
+      }
+      if (focus) tab.focus();
+      search.value = '';
+      filterRows();
+    }
+
+    for (const [index, tab] of tabs.entries()) {
+      tab.addEventListener('click', () => selectTab(tab));
+      tab.addEventListener('keydown', (event) => {
+        const moves = {
+          ArrowRight: index + 1,
+          ArrowLeft: index - 1,
+          Home: 0,
+          End: tabs.length - 1,
+        };
+        if (!(event.key in moves)) return;
+        event.preventDefault();
+        const target = (moves[event.key] + tabs.length) % tabs.length;
+        selectTab(tabs[target], { focus: true });
+      });
+    }
+
+    function showPhotoPlaceholder(image) {
+      const frame = image.closest('.photo-frame');
+      const link = image.closest('a');
+      if (link) link.hidden = true;
+      else image.hidden = true;
+      frame.querySelector('.photo-placeholder').hidden = false;
+    }
+
+    for (const image of document.querySelectorAll('.photo-frame img')) {
+      image.addEventListener('error', () => showPhotoPlaceholder(image));
+      if (image.complete && image.naturalWidth === 0) showPhotoPlaceholder(image);
+    }
+
+    addSoilMixes();
+    sortTables();
+    for (const tab of tabs) {
+      tab.tabIndex = tab.getAttribute('aria-selected') === 'true' ? 0 : -1;
+    }
+    search.addEventListener('input', filterRows);
+    filterRows();
+  </script>
+</body>
+</html>

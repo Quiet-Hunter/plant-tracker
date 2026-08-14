@@ -1,0 +1,14 @@
+.DS_Store
+.claude/settings.local.json
+__pycache__/
+*.py[cod]
+.venv/
+plants.demo.backup.html
+plants.backup.*.html
+
+# Your plant photos and their inventory are private and stay out of git.
+# .gitkeep is tracked so a fresh clone still has the folder.
+images/*
+!images/.gitkeep
+plants.xlsx
+plants.xls

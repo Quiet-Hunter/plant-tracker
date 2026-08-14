@@ -1,0 +1,46 @@
+name: Validate tracker
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install image tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libimage-exiftool-perl imagemagick shellcheck
+
+      # The shipped tracker is intentionally empty: plant records and photos are
+      # private and stay on the owner's machine, so --allow-empty is expected here.
+      - name: Validate tracker
+        run: python3 .agents/skills/plant-tracker/scripts/validate_tracker.py . --allow-empty
+
+      - name: Check agent skill entry points are in sync
+        run: python3 .agents/skills/plant-tracker/scripts/check_skill_sync.py .
+
+      - name: Check image inventory matches images on disk
+        run: python3 .agents/skills/plant-tracker/scripts/sync_image_inventory.py . --check
+
+      - name: Check photo metadata
+        run: .agents/skills/plant-tracker/scripts/check_photo_metadata.sh .
+
+      - name: Lint shell scripts
+        run: shellcheck .agents/skills/plant-tracker/scripts/*.sh
+
+      - name: Run tests
+        run: python3 -m unittest discover -s tests -t tests -v

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(python3 .agents/skills/plant-tracker/scripts/validate_tracker.py:*)",
+      "Bash(python3 .agents/skills/plant-tracker/scripts/check_skill_sync.py:*)",
+      "Bash(.agents/skills/plant-tracker/scripts/check_photo_metadata.sh:*)",
+      "Bash(.agents/skills/plant-tracker/scripts/prepare_photo.sh:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)"
+    ]
+  }
+}
